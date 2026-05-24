@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const DisciplineMirrorApp());
@@ -18,8 +19,14 @@ class DisciplineMirrorApp extends StatelessWidget {
           backgroundColor: Color(0xFF0E1B2F),
           elevation: 0,
         ),
+        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+          backgroundColor: Color(0xFF0E1B2F),
+          selectedItemColor: Colors.cyanAccent,
+          unselectedItemColor: Colors.white54,
+          type: BottomNavigationBarType.fixed,
+        ),
       ),
-      home: const DashboardScreen(),
+      home: const MainShell(),
     );
   }
 }
@@ -44,14 +51,23 @@ class RoutineItem {
   RoutineStatus status;
 }
 
-class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+class MainShell extends StatefulWidget {
+  const MainShell({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  State<MainShell> createState() => _MainShellState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _MainShellState extends State<MainShell> {
+  static const String _statusKey = 'routine_statuses_v1';
+  static const String _bestScoreKey = 'best_score_v1';
+  static const String _streakKey = 'current_streak_v1';
+
+  int selectedIndex = 0;
+  int bestScore = 0;
+  int streakDays = 0;
+  bool loaded = false;
+
   final List<RoutineItem> routines = [
     RoutineItem(
       title: 'Morning Exercise',
@@ -79,7 +95,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       time: '9:00 PM',
       category: 'Finance',
       icon: Icons.account_balance_wallet,
-      message: 'Track expense and avoid impulse decisions.',
+      message: 'Track expenses and avoid impulse decisions.',
     ),
   ];
 
@@ -99,10 +115,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return 'Start small. Accept the next right action.';
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedProgress();
+  }
+
+  Future<void> _loadSavedProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedStatuses = prefs.getStringList(_statusKey);
+    if (savedStatuses != null && savedStatuses.length == routines.length) {
+      for (var i = 0; i < savedStatuses.length; i++) {
+        final index = int.tryParse(savedStatuses[i]) ?? 0;
+        routines[i].status = RoutineStatus.values[index.clamp(0, RoutineStatus.values.length - 1)];
+      }
+    }
+    setState(() {
+      bestScore = prefs.getInt(_bestScoreKey) ?? disciplineScore;
+      streakDays = prefs.getInt(_streakKey) ?? 0;
+      loaded = true;
+    });
+  }
+
+  Future<void> _saveProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(
+      _statusKey,
+      routines.map((item) => item.status.index.toString()).toList(),
+    );
+    if (disciplineScore > bestScore) {
+      bestScore = disciplineScore;
+      await prefs.setInt(_bestScoreKey, bestScore);
+    }
+    final allTrackedAccepted = trackedCount > 0 && acceptedCount == trackedCount;
+    if (allTrackedAccepted) {
+      streakDays = streakDays == 0 ? 1 : streakDays;
+      await prefs.setInt(_streakKey, streakDays);
+    }
+  }
+
   void updateRoutineStatus(int index, RoutineStatus status) {
     setState(() {
       routines[index].status = status;
     });
+    _saveProgress();
   }
 
   void resetDay() {
@@ -111,10 +167,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
         item.status = RoutineStatus.pending;
       }
     });
+    _saveProgress();
   }
 
   @override
   Widget build(BuildContext context) {
+    final pages = [
+      HomePage(
+        loaded: loaded,
+        routines: routines,
+        score: disciplineScore,
+        completed: acceptedCount,
+        total: trackedCount,
+        focusMessage: focusMessage,
+        accepted: acceptedCount,
+        skipped: skippedCount,
+        muted: mutedCount,
+        onAccept: (index) => updateRoutineStatus(index, RoutineStatus.accepted),
+        onSkip: (index) => updateRoutineStatus(index, RoutineStatus.skipped),
+        onMute: (index) => updateRoutineStatus(index, RoutineStatus.muted),
+      ),
+      ProgressPage(
+        score: disciplineScore,
+        bestScore: bestScore,
+        streakDays: streakDays,
+        accepted: acceptedCount,
+        skipped: skippedCount,
+        muted: mutedCount,
+      ),
+      const GoalsPage(),
+    ];
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Discipline Mirror'),
@@ -126,36 +209,74 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            HeaderCard(
-              score: disciplineScore,
-              completed: acceptedCount,
-              total: trackedCount,
-              focusMessage: focusMessage,
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Today Routine',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 12),
-            ...List.generate(
-              routines.length,
-              (index) => RoutineCard(
-                item: routines[index],
-                onAccept: () => updateRoutineStatus(index, RoutineStatus.accepted),
-                onSkip: () => updateRoutineStatus(index, RoutineStatus.skipped),
-                onMute: () => updateRoutineStatus(index, RoutineStatus.muted),
-              ),
-            ),
-            SummaryCard(accepted: acceptedCount, skipped: skippedCount, muted: mutedCount),
-            const SizedBox(height: 24),
-          ],
-        ),
+      body: SafeArea(child: pages[selectedIndex]),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: selectedIndex,
+        onTap: (index) => setState(() => selectedIndex = index),
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.today), label: 'Today'),
+          BottomNavigationBarItem(icon: Icon(Icons.insights), label: 'Progress'),
+          BottomNavigationBarItem(icon: Icon(Icons.flag), label: 'Goals'),
+        ],
       ),
+    );
+  }
+}
+
+class HomePage extends StatelessWidget {
+  const HomePage({
+    super.key,
+    required this.loaded,
+    required this.routines,
+    required this.score,
+    required this.completed,
+    required this.total,
+    required this.focusMessage,
+    required this.accepted,
+    required this.skipped,
+    required this.muted,
+    required this.onAccept,
+    required this.onSkip,
+    required this.onMute,
+  });
+
+  final bool loaded;
+  final List<RoutineItem> routines;
+  final int score;
+  final int completed;
+  final int total;
+  final String focusMessage;
+  final int accepted;
+  final int skipped;
+  final int muted;
+  final ValueChanged<int> onAccept;
+  final ValueChanged<int> onSkip;
+  final ValueChanged<int> onMute;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!loaded) {
+      return const Center(child: CircularProgressIndicator(color: Colors.cyanAccent));
+    }
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        HeaderCard(score: score, completed: completed, total: total, focusMessage: focusMessage),
+        const SizedBox(height: 18),
+        const Text('Today Routine', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 12),
+        ...List.generate(
+          routines.length,
+          (index) => RoutineCard(
+            item: routines[index],
+            onAccept: () => onAccept(index),
+            onSkip: () => onSkip(index),
+            onMute: () => onMute(index),
+          ),
+        ),
+        SummaryCard(accepted: accepted, skipped: skipped, muted: muted),
+        const SizedBox(height: 24),
+      ],
     );
   }
 }
@@ -185,20 +306,14 @@ class HeaderCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Good Evening, Sreekanth',
-            style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900),
-          ),
+          const Text('Good Evening, Sreekanth', style: TextStyle(fontSize: 25, fontWeight: FontWeight.w900)),
           const SizedBox(height: 10),
           Text(focusMessage, style: const TextStyle(fontSize: 14, color: Colors.white70)),
           const SizedBox(height: 18),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                '$score%',
-                style: const TextStyle(fontSize: 52, color: Colors.cyanAccent, fontWeight: FontWeight.w900),
-              ),
+              Text('$score%', style: const TextStyle(fontSize: 52, color: Colors.cyanAccent, fontWeight: FontWeight.w900)),
               const SizedBox(width: 12),
               Padding(
                 padding: const EdgeInsets.only(bottom: 10),
@@ -326,13 +441,7 @@ class RoutineCard extends StatelessWidget {
 }
 
 class ActionPill extends StatelessWidget {
-  const ActionPill({
-    super.key,
-    required this.label,
-    required this.icon,
-    required this.color,
-    required this.onTap,
-  });
+  const ActionPill({super.key, required this.label, required this.icon, required this.color, required this.onTap});
 
   final String label;
   final IconData icon;
@@ -379,6 +488,125 @@ class SummaryCard extends StatelessWidget {
           MiniMetric(label: 'Accepted', value: accepted, color: Colors.green),
           MiniMetric(label: 'Skipped', value: skipped, color: Colors.orange),
           MiniMetric(label: 'Muted', value: muted, color: Colors.grey),
+        ],
+      ),
+    );
+  }
+}
+
+class ProgressPage extends StatelessWidget {
+  const ProgressPage({
+    super.key,
+    required this.score,
+    required this.bestScore,
+    required this.streakDays,
+    required this.accepted,
+    required this.skipped,
+    required this.muted,
+  });
+
+  final int score;
+  final int bestScore;
+  final int streakDays;
+  final int accepted;
+  final int skipped;
+  final int muted;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text('Progress Command Center', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 16),
+        MetricTile(title: 'Today Score', value: '$score%', icon: Icons.speed, color: Colors.cyanAccent),
+        MetricTile(title: 'Best Score', value: '$bestScore%', icon: Icons.emoji_events, color: Colors.amberAccent),
+        MetricTile(title: 'Current Streak', value: '$streakDays day', icon: Icons.local_fire_department, color: Colors.orangeAccent),
+        const SizedBox(height: 12),
+        SummaryCard(accepted: accepted, skipped: skipped, muted: muted),
+      ],
+    );
+  }
+}
+
+class GoalsPage extends StatelessWidget {
+  const GoalsPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final goals = [
+      ('Health', 'Daily exercise and better food discipline', Icons.favorite, Colors.greenAccent),
+      ('AI Enabler', 'Become AI transformation leader for the team', Icons.psychology, Colors.cyanAccent),
+      ('SCM Domain', 'Build CPIM and supply chain planning foundation', Icons.account_tree, Colors.blueAccent),
+      ('Finance', 'Track money and build long-term stability', Icons.savings, Colors.amberAccent),
+      ('Family', 'Be present and emotionally available', Icons.family_restroom, Colors.pinkAccent),
+    ];
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text('Transformation Goals', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 16),
+        ...goals.map((goal) => GoalTile(title: goal.$1, subtitle: goal.$2, icon: goal.$3, color: goal.$4)),
+      ],
+    );
+  }
+}
+
+class MetricTile extends StatelessWidget {
+  const MetricTile({super.key, required this.title, required this.value, required this.icon, required this.color});
+
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF0E1B2F), borderRadius: BorderRadius.circular(22)),
+      child: Row(
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: 12),
+          Expanded(child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+          Text(value, style: TextStyle(fontSize: 22, color: color, fontWeight: FontWeight.w900)),
+        ],
+      ),
+    );
+  }
+}
+
+class GoalTile extends StatelessWidget {
+  const GoalTile({super.key, required this.title, required this.subtitle, required this.icon, required this.color});
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF0E1B2F), borderRadius: BorderRadius.circular(22)),
+      child: Row(
+        children: [
+          Icon(icon, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 4),
+                Text(subtitle, style: const TextStyle(fontSize: 12, color: Colors.white60)),
+              ],
+            ),
+          ),
         ],
       ),
     );
