@@ -3,403 +3,68 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AuraBoard AI - Discipline Mirror Backlog</title>
+  <title>AuraBoard AI - Discipline Mirror Product Ops</title>
   <style>
-    :root {
-      --bg: #07111f;
-      --panel: #0e1b2f;
-      --panel2: #13243d;
-      --text: #eef6ff;
-      --muted: #8fa4bd;
-      --accent: #7c5cff;
-      --green: #22c55e;
-      --yellow: #facc15;
-      --orange: #fb923c;
-      --red: #ef4444;
-      --blue: #38bdf8;
-      --border: rgba(255,255,255,.12);
-      --shadow: 0 18px 45px rgba(0,0,0,.35);
-    }
-
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: Inter, Segoe UI, Arial, sans-serif;
-      background: radial-gradient(circle at top left, #1b2d55 0, var(--bg) 38%, #050913 100%);
-      color: var(--text);
-      min-height: 100vh;
-    }
-
-    header {
-      padding: 28px 32px 18px;
-      display: flex;
-      justify-content: space-between;
-      gap: 20px;
-      align-items: center;
-      border-bottom: 1px solid var(--border);
-      background: rgba(5,10,20,.72);
-      backdrop-filter: blur(16px);
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-
-    .brand h1 { margin: 0; font-size: 30px; letter-spacing: -.5px; }
-    .brand p { margin: 7px 0 0; color: var(--muted); font-size: 14px; }
-    .pill { display: inline-flex; gap: 8px; align-items: center; padding: 9px 13px; border: 1px solid var(--border); border-radius: 999px; background: rgba(255,255,255,.06); color: #dbeafe; font-size: 13px; }
-    .actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
-    button, a.button {
-      border: 0;
-      color: white;
-      background: linear-gradient(135deg, var(--accent), #00b7ff);
-      padding: 11px 15px;
-      border-radius: 12px;
-      cursor: pointer;
-      text-decoration: none;
-      font-weight: 700;
-      box-shadow: 0 8px 20px rgba(124,92,255,.25);
-    }
-    button.secondary, a.secondary { background: rgba(255,255,255,.09); box-shadow: none; border: 1px solid var(--border); }
-
-    main { padding: 24px 32px 36px; }
-    .summary {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(160px, 1fr));
-      gap: 16px;
-      margin-bottom: 22px;
-    }
-    .metric {
-      background: linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.04));
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 18px;
-      box-shadow: var(--shadow);
-    }
-    .metric .value { font-size: 30px; font-weight: 900; margin-top: 8px; }
-    .metric .label { color: var(--muted); font-size: 13px; }
-
-    .controls {
-      display: grid;
-      grid-template-columns: 1.3fr .8fr .8fr .8fr auto;
-      gap: 12px;
-      margin-bottom: 22px;
-    }
-    input, select, textarea {
-      width: 100%;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,.08);
-      color: var(--text);
-      padding: 12px;
-      border-radius: 12px;
-      outline: none;
-    }
-    textarea { min-height: 82px; resize: vertical; }
-    option { color: #0f172a; }
-
-    .board {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(230px, 1fr));
-      gap: 16px;
-      overflow-x: auto;
-      padding-bottom: 8px;
-    }
-    .column {
-      background: rgba(255,255,255,.055);
-      border: 1px solid var(--border);
-      border-radius: 22px;
-      padding: 14px;
-      min-height: 520px;
-      box-shadow: var(--shadow);
-    }
-    .column h2 {
-      margin: 0 0 12px;
-      font-size: 15px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .count { color: var(--muted); font-size: 12px; }
-    .card {
-      background: linear-gradient(180deg, var(--panel2), var(--panel));
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 14px;
-      margin-bottom: 12px;
-    }
-    .card h3 { margin: 0 0 8px; font-size: 15px; line-height: 1.35; }
-    .card p { margin: 0 0 10px; color: #c5d4e8; font-size: 13px; line-height: 1.45; }
-    .meta { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 11px; }
-    .tag { padding: 5px 8px; border-radius: 999px; font-size: 11px; border: 1px solid var(--border); color: #dbeafe; background: rgba(255,255,255,.06); }
-    .priority-high { color: #fecaca; border-color: rgba(239,68,68,.5); }
-    .priority-medium { color: #fef3c7; border-color: rgba(250,204,21,.5); }
-    .priority-low { color: #bbf7d0; border-color: rgba(34,197,94,.5); }
-    .card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .card-actions button, .card-actions a { font-size: 12px; padding: 8px; text-align: center; }
-    .tiny { font-size: 11px; color: var(--muted); margin-top: 8px; }
-
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.64);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      z-index: 20;
-    }
-    .modal-content {
-      background: #0b1729;
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 22px;
-      max-width: 720px;
-      width: 100%;
-      box-shadow: var(--shadow);
-    }
-    .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .modal-grid .full { grid-column: 1 / -1; }
-    .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
-
-    @media (max-width: 980px) {
-      header { flex-direction: column; align-items: flex-start; }
-      .summary { grid-template-columns: repeat(2, 1fr); }
-      .controls { grid-template-columns: 1fr; }
-      .board { grid-template-columns: repeat(5, 280px); }
-    }
+    :root{--bg:#07111f;--panel:#0e1b2f;--panel2:#13243d;--text:#eef6ff;--muted:#8fa4bd;--accent:#7c5cff;--green:#22c55e;--orange:#fb923c;--blue:#38bdf8;--border:rgba(255,255,255,.12);--shadow:0 18px 45px rgba(0,0,0,.35)}
+    *{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:radial-gradient(circle at top left,#1b2d55 0,var(--bg) 38%,#050913 100%);color:var(--text);min-height:100vh}header{padding:26px 32px 18px;display:flex;justify-content:space-between;gap:20px;align-items:center;border-bottom:1px solid var(--border);background:rgba(5,10,20,.78);backdrop-filter:blur(16px);position:sticky;top:0;z-index:10}.brand h1{margin:0;font-size:30px}.brand p{margin:7px 0 0;color:var(--muted);font-size:14px}.actions{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end}.pill{display:inline-flex;gap:8px;align-items:center;padding:9px 13px;border:1px solid var(--border);border-radius:999px;background:rgba(255,255,255,.06);color:#dbeafe;font-size:13px}button,a.button{border:0;color:white;background:linear-gradient(135deg,var(--accent),#00b7ff);padding:11px 15px;border-radius:12px;cursor:pointer;text-decoration:none;font-weight:700;box-shadow:0 8px 20px rgba(124,92,255,.25)}button.secondary,a.secondary{background:rgba(255,255,255,.09);box-shadow:none;border:1px solid var(--border)}main{padding:24px 32px 36px}.summary{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:16px;margin-bottom:20px}.metric,.status-panel{background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.04));border:1px solid var(--border);border-radius:20px;padding:18px;box-shadow:var(--shadow)}.metric .value{font-size:29px;font-weight:900;margin-top:8px}.metric .label{color:var(--muted);font-size:13px}.status-row{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:16px;margin-bottom:20px}.status-panel h3{margin:0 0 8px;font-size:15px}.status-panel p{margin:0;color:#c5d4e8;font-size:13px;line-height:1.45}.controls{display:grid;grid-template-columns:1.4fr .75fr .75fr .75fr auto;gap:12px;margin-bottom:22px}input,select{width:100%;border:1px solid var(--border);background:rgba(255,255,255,.08);color:var(--text);padding:12px;border-radius:12px;outline:none}option{color:#0f172a}.board{display:grid;grid-template-columns:repeat(5,minmax(240px,1fr));gap:16px;overflow-x:auto;padding-bottom:8px}.column{background:rgba(255,255,255,.055);border:1px solid var(--border);border-radius:22px;padding:14px;min-height:520px;box-shadow:var(--shadow)}.column h2{margin:0 0 12px;font-size:15px;display:flex;justify-content:space-between;align-items:center}.count{color:var(--muted);font-size:12px}.card{background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--border);border-radius:18px;padding:14px;margin-bottom:12px}.card h3{margin:0 0 8px;font-size:15px;line-height:1.35}.card p{margin:0 0 10px;color:#c5d4e8;font-size:13px;line-height:1.45}.meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:11px}.tag{padding:5px 8px;border-radius:999px;font-size:11px;border:1px solid var(--border);color:#dbeafe;background:rgba(255,255,255,.06)}.priority-high{color:#fecaca;border-color:rgba(239,68,68,.5)}.priority-medium{color:#fef3c7;border-color:rgba(250,204,21,.5)}.priority-low{color:#bbf7d0;border-color:rgba(34,197,94,.5)}.tiny{font-size:11px;color:var(--muted);margin-top:8px}.card-actions{display:grid;grid-template-columns:1fr;gap:8px}.card-actions a{font-size:12px;padding:8px;text-align:center}.source-note{font-size:12px;color:var(--muted);margin:8px 0 18px}.progressbar{height:10px;border-radius:999px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:10px}.progressbar span{display:block;height:100%;background:linear-gradient(90deg,#38bdf8,#22c55e);width:0%}@media(max-width:980px){header{flex-direction:column;align-items:flex-start}.summary{grid-template-columns:repeat(2,1fr)}.status-row{grid-template-columns:1fr}.controls{grid-template-columns:1fr}.board{grid-template-columns:repeat(5,280px)}}
   </style>
 </head>
 <body>
   <header>
-    <div class="brand">
-      <h1>✨ AuraBoard AI</h1>
-      <p>Founder command board for Discipline Mirror — Epics, PBIs, Stories, GitHub links and release readiness.</p>
-    </div>
-    <div class="actions">
-      <span class="pill">🚀 MVP Focus: Reminder + Score</span>
-      <a class="button secondary" id="repoLink" href="https://github.com/" target="_blank">Open GitHub</a>
-      <button onclick="openModal()">+ Add Work Item</button>
-    </div>
+    <div class="brand"><h1>✨ AuraBoard AI</h1><p>Founder command board for Discipline Mirror — dynamic sprint, backlog, release and execution visibility.</p></div>
+    <div class="actions"><span class="pill" id="sprintPill">🚀 Loading sprint...</span><a class="button secondary" id="repoLink" href="https://github.com/sreekanthdarur/discipline-mirror" target="_blank">Open GitHub</a><button onclick="reloadBoard()">Refresh Board</button></div>
   </header>
-
   <main>
     <section class="summary">
-      <div class="metric"><div class="label">Total Work Items</div><div class="value" id="totalCount">0</div></div>
-      <div class="metric"><div class="label">Ready / Done</div><div class="value" id="doneCount">0</div></div>
-      <div class="metric"><div class="label">MVP Progress</div><div class="value" id="progressPct">0%</div></div>
-      <div class="metric"><div class="label">Current Sprint</div><div class="value">Sprint 0</div></div>
+      <div class="metric"><div class="label">Total Items</div><div class="value" id="totalCount">0</div></div>
+      <div class="metric"><div class="label">Done</div><div class="value" id="doneCount">0</div></div>
+      <div class="metric"><div class="label">In Review</div><div class="value" id="reviewCount">0</div></div>
+      <div class="metric"><div class="label">In Progress</div><div class="value" id="progressCount">0</div></div>
+      <div class="metric"><div class="label">MVP Progress</div><div class="value" id="progressPct">0%</div><div class="progressbar"><span id="progressBar"></span></div></div>
     </section>
-
+    <section class="status-row">
+      <div class="status-panel"><h3>AI Execution Status</h3><p id="aiStatus">Sprint 2 implementation active. AuraBoard is being converted into a dynamic product-ops layer.</p></div>
+      <div class="status-panel"><h3>Founder Next Action</h3><p id="founderAction">Pull latest code, open AuraBoard, review board progress, then review Flutter app.</p></div>
+      <div class="status-panel"><h3>Release Readiness</h3><p id="releaseStatus">Early MVP. Not release-ready yet. Sprint 1 validated on Android; Sprint 2 focuses on execution visibility.</p></div>
+    </section>
     <section class="controls">
-      <input id="searchBox" placeholder="Search epic, PBI, story, feature..." oninput="renderBoard()" />
-      <select id="typeFilter" onchange="renderBoard()">
-        <option value="All">All Types</option>
-        <option value="Epic">Epic</option>
-        <option value="PBI">PBI</option>
-        <option value="Story">Story</option>
-        <option value="Task">Task</option>
-        <option value="Bug">Bug</option>
-      </select>
-      <select id="priorityFilter" onchange="renderBoard()">
-        <option value="All">All Priorities</option>
-        <option value="High">High</option>
-        <option value="Medium">Medium</option>
-        <option value="Low">Low</option>
-      </select>
-      <input id="githubInput" placeholder="Paste GitHub repo URL" />
-      <button class="secondary" onclick="saveRepo()">Save Repo</button>
+      <input id="searchBox" placeholder="Search epic, PBI, story, sprint, owner..." oninput="renderBoard()" />
+      <select id="typeFilter" onchange="renderBoard()"><option value="All">All Types</option><option value="Epic">Epic</option><option value="PBI">PBI</option><option value="Story">Story</option><option value="Task">Task</option><option value="Bug">Bug</option></select>
+      <select id="priorityFilter" onchange="renderBoard()"><option value="All">All Priorities</option><option value="High">High</option><option value="Medium">Medium</option><option value="Low">Low</option></select>
+      <select id="sprintFilter" onchange="renderBoard()"><option value="All">All Sprints</option></select>
+      <button class="secondary" onclick="clearLocalOverrides()">Reset Local View</button>
     </section>
-
+    <p class="source-note" id="sourceNote">Source: embedded sprint data. Local file JSON loading can be browser-restricted under file://, so the board also carries the latest repo-backed fallback.</p>
     <section class="board" id="board"></section>
   </main>
-
-  <div class="modal" id="itemModal">
-    <div class="modal-content">
-      <h2 style="margin-top:0">Add / Edit Work Item</h2>
-      <div class="modal-grid">
-        <input id="itemTitle" class="full" placeholder="Title" />
-        <select id="itemType">
-          <option>Epic</option><option>PBI</option><option>Story</option><option>Task</option><option>Bug</option>
-        </select>
-        <select id="itemStatus">
-          <option>Ideas</option><option>Backlog</option><option>In Progress</option><option>Review</option><option>Done</option>
-        </select>
-        <select id="itemPriority">
-          <option>High</option><option>Medium</option><option>Low</option>
-        </select>
-        <input id="itemOwner" placeholder="Owner e.g., Sreekanth / Sindhu / AI" />
-        <input id="itemGithub" class="full" placeholder="GitHub issue/PR/code URL optional" />
-        <textarea id="itemDesc" class="full" placeholder="Description / acceptance criteria"></textarea>
-      </div>
-      <div class="modal-footer">
-        <button class="secondary" onclick="closeModal()">Cancel</button>
-        <button onclick="saveItem()">Save Work Item</button>
-      </div>
-    </div>
-  </div>
-
   <script>
-    const STATUSES = ['Ideas', 'Backlog', 'In Progress', 'Review', 'Done'];
-    let editId = null;
-
-    const seedItems = [
-      { id: crypto.randomUUID(), type: 'Epic', title: 'AI-Powered Personal Transformation OS', status: 'Backlog', priority: 'High', owner: 'Sreekanth + AI', github: '', desc: 'Define the full product vision: goals, routine, AI coach, image reminders, calendar intelligence and monetization.' },
-      { id: crypto.randomUUID(), type: 'Epic', title: 'Visual Reminder Engine', status: 'Backlog', priority: 'High', owner: 'AI', github: '', desc: 'Generate beautiful workday/weekend reminder visuals for lock screen, desktop wallpaper and in-app cards.' },
-      { id: crypto.randomUUID(), type: 'PBI', title: 'Flutter MVP App Shell', status: 'Backlog', priority: 'High', owner: 'AI Engineer', github: '', desc: 'Create Flutter structure with home screen, routine cards and discipline score placeholder.' },
-      { id: crypto.randomUUID(), type: 'Story', title: 'As a user, I can accept or skip a reminder', status: 'Backlog', priority: 'High', owner: 'AI Engineer', github: '', desc: 'User can mark a reminder as accepted, skipped, snoozed or muted. The result should update the discipline score.' },
-      { id: crypto.randomUUID(), type: 'Story', title: 'As a user, I can track without notification', status: 'Backlog', priority: 'Medium', owner: 'AI Engineer', github: '', desc: 'User can mute reminders but still allow tracking for discipline analytics.' },
-      { id: crypto.randomUUID(), type: 'PBI', title: 'GitHub Version Control Setup', status: 'In Progress', priority: 'High', owner: 'Sreekanth', github: '', desc: 'Create GitHub repo, main/develop branches, tags for rollback and GitHub Issues/Projects for future tracking.' },
-      { id: crypto.randomUUID(), type: 'PBI', title: 'Supabase Backend Decision', status: 'Ideas', priority: 'Medium', owner: 'AI Architect', github: '', desc: 'Later: decide auth, user profile, goals, reminder logs and subscription model.' },
-      { id: crypto.randomUUID(), type: 'PBI', title: 'AI Plan Builder', status: 'Ideas', priority: 'High', owner: 'AI Architect', github: '', desc: 'User explains life situation and goals. AI creates 12-month plan, weekly structure and daily routine.' },
-      { id: crypto.randomUUID(), type: 'PBI', title: 'Google Calendar Sync', status: 'Ideas', priority: 'Medium', owner: 'AI Architect', github: '', desc: 'Read user calendar with permission and suggest reminders around meetings and personal commitments.' },
-      { id: crypto.randomUUID(), type: 'Task', title: 'Prepare MVP Day 1 Local App', status: 'Backlog', priority: 'High', owner: 'AI Engineer', github: '', desc: 'Build first runnable local version before adding backend, AI and subscriptions.' }
-    ];
-
-    function getItems() {
-      const raw = localStorage.getItem('auraBoardItems');
-      if (!raw) {
-        localStorage.setItem('auraBoardItems', JSON.stringify(seedItems));
-        return seedItems;
-      }
-      return JSON.parse(raw);
+    const STATUSES=['Ideas','Backlog','In Progress','Review','Done'];
+    const BOARD_DATA={product:'Discipline Mirror',currentSprint:'Sprint 2',repoUrl:'https://github.com/sreekanthdarur/discipline-mirror',lastUpdated:'2026-05-24',items:[
+      {id:'EPIC-01',type:'Epic',title:'Product Foundation',status:'Done',priority:'High',owner:'AI + Sreekanth',sprint:'Sprint 0',github:'https://github.com/sreekanthdarur/discipline-mirror',desc:'Set up GitHub, Flutter, Android device runtime, branch workflow and startup structure.'},
+      {id:'PBI-01',type:'PBI',title:'Interactive MVP dashboard',status:'Review',priority:'High',owner:'AI Engineer',sprint:'Sprint 1',github:'https://github.com/sreekanthdarur/discipline-mirror/issues/1',desc:'Mobile-first dashboard with routine cards, Accept/Skip/Mute, live discipline score and status badges.'},
+      {id:'PBI-02',type:'PBI',title:'Persistence, navigation and streak foundation',status:'Review',priority:'High',owner:'AI Engineer',sprint:'Sprint 1 Phase 3',github:'https://github.com/sreekanthdarur/discipline-mirror/tree/feature/interactive-dashboard',desc:'Bottom navigation, progress screen, goals screen, shared preferences, best score and streak foundation.'},
+      {id:'EPIC-02',type:'Epic',title:'AuraBoard AI Product Ops Dashboard',status:'In Progress',priority:'High',owner:'AI Architect',sprint:'Sprint 2',github:'https://github.com/sreekanthdarur/discipline-mirror/issues/2',desc:'Make AuraBoard part of the codebase with sprint visibility, founder progress tracking and JSON-driven backlog.'},
+      {id:'STORY-02-01',type:'Story',title:'As founder, I can open AuraBoard after git pull',status:'Review',priority:'High',owner:'AI Engineer',sprint:'Sprint 2',github:'https://github.com/sreekanthdarur/discipline-mirror/issues/2',desc:'AuraBoard loads sprint and backlog items from repo-managed data and renders live product-ops metrics.'},
+      {id:'STORY-02-02',type:'Story',title:'As founder, I can see sprint progress clearly',status:'Review',priority:'High',owner:'AI Engineer',sprint:'Sprint 2',github:'https://github.com/sreekanthdarur/discipline-mirror/issues/2',desc:'Show current sprint, total items, done/review count, in-progress count and MVP progress.'},
+      {id:'STORY-02-03',type:'Story',title:'As founder, I can identify next action',status:'Review',priority:'Medium',owner:'AI Product Director',sprint:'Sprint 2',github:'https://github.com/sreekanthdarur/discipline-mirror/issues/2',desc:'Board shows whether the next action is AI implementation, user testing, code review or release decision.'},
+      {id:'EPIC-03',type:'Epic',title:'Reminder and Notification Engine',status:'Backlog',priority:'High',owner:'AI Architect',sprint:'Sprint 3',github:'',desc:'Add local notifications, reminder scheduling, snooze and track-only mode.'},
+      {id:'EPIC-04',type:'Epic',title:'AI Plan Builder',status:'Ideas',priority:'High',owner:'AI Architect',sprint:'Sprint 4',github:'',desc:'User explains current life situation and AI creates goals, plan, schedule and reminders.'},
+      {id:'EPIC-05',type:'Epic',title:'Emotional Image Reminder Generator',status:'Ideas',priority:'High',owner:'AI Architect',sprint:'Sprint 5',github:'',desc:'Generate emotional visual reminders, banners and lock-screen style images with user-approved photos and text.'}
+    ]};
+    let boardData=BOARD_DATA;
+    async function reloadBoard(){
+      try{const res=await fetch('backlog/aura_board_backlog.json',{cache:'no-store'});if(res.ok){boardData=await res.json();document.getElementById('sourceNote').textContent='Source: backlog/aura_board_backlog.json loaded successfully.';}}
+      catch(e){document.getElementById('sourceNote').textContent='Source: embedded fallback data. Browser may block JSON fetch from file://; this is expected locally.';}
+      hydrateSprintFilter();renderBoard();
     }
-
-    function setItems(items) { localStorage.setItem('auraBoardItems', JSON.stringify(items)); }
-
-    function renderBoard() {
-      const board = document.getElementById('board');
-      const search = document.getElementById('searchBox').value.toLowerCase();
-      const type = document.getElementById('typeFilter').value;
-      const priority = document.getElementById('priorityFilter').value;
-      const items = getItems().filter(i =>
-        (type === 'All' || i.type === type) &&
-        (priority === 'All' || i.priority === priority) &&
-        (`${i.title} ${i.desc} ${i.owner}`.toLowerCase().includes(search))
-      );
-
-      board.innerHTML = '';
-      STATUSES.forEach(status => {
-        const columnItems = items.filter(i => i.status === status);
-        const col = document.createElement('div');
-        col.className = 'column';
-        col.innerHTML = `<h2>${status}<span class="count">${columnItems.length}</span></h2>`;
-        columnItems.forEach(item => col.appendChild(card(item)));
-        board.appendChild(col);
-      });
-      updateMetrics();
-    }
-
-    function card(item) {
-      const div = document.createElement('div');
-      const pClass = item.priority === 'High' ? 'priority-high' : item.priority === 'Medium' ? 'priority-medium' : 'priority-low';
-      div.className = 'card';
-      div.innerHTML = `
-        <div class="meta">
-          <span class="tag">${item.type}</span>
-          <span class="tag ${pClass}">${item.priority}</span>
-          <span class="tag">${item.owner || 'Unassigned'}</span>
-        </div>
-        <h3>${escapeHtml(item.title)}</h3>
-        <p>${escapeHtml(item.desc || '')}</p>
-        <div class="card-actions">
-          <button class="secondary" onclick="moveItem('${item.id}', -1)">← Move</button>
-          <button class="secondary" onclick="moveItem('${item.id}', 1)">Move →</button>
-          <button class="secondary" onclick="editItem('${item.id}')">Edit</button>
-          ${item.github ? `<a class="button secondary" href="${item.github}" target="_blank">Open Link</a>` : `<button class="secondary" onclick="addGithub('${item.id}')">Add Link</button>`}
-        </div>
-        <div class="tiny">ID: ${item.id.slice(0,8)}</div>
-      `;
-      return div;
-    }
-
-    function moveItem(id, direction) {
-      const items = getItems();
-      const item = items.find(i => i.id === id);
-      const idx = STATUSES.indexOf(item.status);
-      const next = Math.max(0, Math.min(STATUSES.length - 1, idx + direction));
-      item.status = STATUSES[next];
-      setItems(items); renderBoard();
-    }
-
-    function addGithub(id) {
-      const url = prompt('Paste GitHub issue / PR / code URL');
-      if (!url) return;
-      const items = getItems();
-      const item = items.find(i => i.id === id);
-      item.github = url;
-      setItems(items); renderBoard();
-    }
-
-    function openModal() { editId = null; clearForm(); document.getElementById('itemModal').style.display = 'flex'; }
-    function closeModal() { document.getElementById('itemModal').style.display = 'none'; }
-
-    function editItem(id) {
-      const item = getItems().find(i => i.id === id);
-      editId = id;
-      document.getElementById('itemTitle').value = item.title;
-      document.getElementById('itemType').value = item.type;
-      document.getElementById('itemStatus').value = item.status;
-      document.getElementById('itemPriority').value = item.priority;
-      document.getElementById('itemOwner').value = item.owner || '';
-      document.getElementById('itemGithub').value = item.github || '';
-      document.getElementById('itemDesc').value = item.desc || '';
-      document.getElementById('itemModal').style.display = 'flex';
-    }
-
-    function saveItem() {
-      const item = {
-        id: editId || crypto.randomUUID(),
-        title: document.getElementById('itemTitle').value.trim(),
-        type: document.getElementById('itemType').value,
-        status: document.getElementById('itemStatus').value,
-        priority: document.getElementById('itemPriority').value,
-        owner: document.getElementById('itemOwner').value.trim(),
-        github: document.getElementById('itemGithub').value.trim(),
-        desc: document.getElementById('itemDesc').value.trim()
-      };
-      if (!item.title) { alert('Title is required'); return; }
-      let items = getItems();
-      if (editId) items = items.map(i => i.id === editId ? item : i);
-      else items.push(item);
-      setItems(items); closeModal(); renderBoard();
-    }
-
-    function clearForm() {
-      ['itemTitle','itemOwner','itemGithub','itemDesc'].forEach(id => document.getElementById(id).value = '');
-      document.getElementById('itemType').value = 'Story';
-      document.getElementById('itemStatus').value = 'Backlog';
-      document.getElementById('itemPriority').value = 'Medium';
-    }
-
-    function updateMetrics() {
-      const items = getItems();
-      const done = items.filter(i => i.status === 'Done').length;
-      document.getElementById('totalCount').textContent = items.length;
-      document.getElementById('doneCount').textContent = done;
-      document.getElementById('progressPct').textContent = items.length ? Math.round(done / items.length * 100) + '%' : '0%';
-    }
-
-    function saveRepo() {
-      const url = document.getElementById('githubInput').value.trim();
-      if (!url) return;
-      localStorage.setItem('auraRepoUrl', url);
-      document.getElementById('repoLink').href = url;
-      alert('GitHub repo saved');
-    }
-
-    function loadRepo() {
-      const url = localStorage.getItem('auraRepoUrl');
-      if (url) {
-        document.getElementById('repoLink').href = url;
-        document.getElementById('githubInput').value = url;
-      }
-    }
-
-    function escapeHtml(text) {
-      return text.replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-    }
-
-    loadRepo();
-    renderBoard();
+    function getItems(){return boardData.items||[]}
+    function hydrateSprintFilter(){const sel=document.getElementById('sprintFilter');const old=sel.value;const sprints=[...new Set(getItems().map(i=>i.sprint).filter(Boolean))];sel.innerHTML='<option value="All">All Sprints</option>'+sprints.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');sel.value=sprints.includes(old)?old:'All';document.getElementById('sprintPill').textContent='🚀 '+(boardData.currentSprint||'Sprint Active');document.getElementById('repoLink').href=boardData.repoUrl||'https://github.com/sreekanthdarur/discipline-mirror'}
+    function renderBoard(){const board=document.getElementById('board');const search=document.getElementById('searchBox').value.toLowerCase();const type=document.getElementById('typeFilter').value;const priority=document.getElementById('priorityFilter').value;const sprint=document.getElementById('sprintFilter').value;const items=getItems().filter(i=>(type==='All'||i.type===type)&&(priority==='All'||i.priority===priority)&&(sprint==='All'||i.sprint===sprint)&&(`${i.id} ${i.title} ${i.desc} ${i.owner} ${i.sprint}`.toLowerCase().includes(search)));board.innerHTML='';STATUSES.forEach(status=>{const columnItems=items.filter(i=>i.status===status);const col=document.createElement('div');col.className='column';col.innerHTML=`<h2>${status}<span class="count">${columnItems.length}</span></h2>`;columnItems.forEach(item=>col.appendChild(card(item)));board.appendChild(col)});updateMetrics()}
+    function card(item){const div=document.createElement('div');const pClass=item.priority==='High'?'priority-high':item.priority==='Medium'?'priority-medium':'priority-low';div.className='card';div.innerHTML=`<div class="meta"><span class="tag">${escapeHtml(item.id)}</span><span class="tag">${escapeHtml(item.type)}</span><span class="tag ${pClass}">${escapeHtml(item.priority)}</span><span class="tag">${escapeHtml(item.sprint||'No sprint')}</span></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.desc||'')}</p><div class="meta"><span class="tag">Owner: ${escapeHtml(item.owner||'Unassigned')}</span></div><div class="card-actions">${item.github?`<a class="button secondary" href="${item.github}" target="_blank">Open GitHub Link</a>`:''}</div><div class="tiny">Status: ${escapeHtml(item.status)}</div>`;return div}
+    function updateMetrics(){const items=getItems();const done=items.filter(i=>i.status==='Done').length;const review=items.filter(i=>i.status==='Review').length;const inProgress=items.filter(i=>i.status==='In Progress').length;const pct=items.length?Math.round(((done+review*.7+inProgress*.35)/items.length)*100):0;document.getElementById('totalCount').textContent=items.length;document.getElementById('doneCount').textContent=done;document.getElementById('reviewCount').textContent=review;document.getElementById('progressCount').textContent=inProgress;document.getElementById('progressPct').textContent=pct+'%';document.getElementById('progressBar').style.width=pct+'%'}
+    function clearLocalOverrides(){localStorage.removeItem('auraBoardItems');reloadBoard()}
+    function escapeHtml(text){return String(text??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+    reloadBoard();
   </script>
 </body>
 </html>
