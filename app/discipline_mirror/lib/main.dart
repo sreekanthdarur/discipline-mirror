@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'services/notification_service.dart';
+
 void main() {
   runApp(const DisciplineMirrorApp());
 }
@@ -62,11 +64,13 @@ class _MainShellState extends State<MainShell> {
   static const String _statusKey = 'routine_statuses_v1';
   static const String _bestScoreKey = 'best_score_v1';
   static const String _streakKey = 'current_streak_v1';
+  static const String _onboardingKey = 'onboarding_summary_v1';
 
   int selectedIndex = 0;
   int bestScore = 0;
   int streakDays = 0;
   bool loaded = false;
+  String onboardingSummary = 'Not prepared yet';
 
   final List<RoutineItem> routines = [
     RoutineItem(
@@ -118,6 +122,7 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
+    NotificationService.init();
     _loadSavedProgress();
   }
 
@@ -133,6 +138,7 @@ class _MainShellState extends State<MainShell> {
     setState(() {
       bestScore = prefs.getInt(_bestScoreKey) ?? disciplineScore;
       streakDays = prefs.getInt(_streakKey) ?? 0;
+      onboardingSummary = prefs.getString(_onboardingKey) ?? 'Not prepared yet';
       loaded = true;
     });
   }
@@ -154,6 +160,14 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
+  Future<void> saveOnboardingSummary(String summary) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_onboardingKey, summary);
+    setState(() {
+      onboardingSummary = summary;
+    });
+  }
+
   void updateRoutineStatus(int index, RoutineStatus status) {
     setState(() {
       routines[index].status = status;
@@ -168,6 +182,17 @@ class _MainShellState extends State<MainShell> {
       }
     });
     _saveProgress();
+  }
+
+  Future<void> testReminder(BuildContext context, RoutineItem item) async {
+    await NotificationService.showReminderNow(
+      title: 'Discipline Mirror: ${item.title}',
+      body: '${item.time} • ${item.message}',
+    );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Test reminder sent for ${item.title}')),
+    );
   }
 
   @override
@@ -187,6 +212,10 @@ class _MainShellState extends State<MainShell> {
         onSkip: (index) => updateRoutineStatus(index, RoutineStatus.skipped),
         onMute: (index) => updateRoutineStatus(index, RoutineStatus.muted),
       ),
+      RemindersPage(
+        routines: routines,
+        onTestReminder: (item) => testReminder(context, item),
+      ),
       ProgressPage(
         score: disciplineScore,
         bestScore: bestScore,
@@ -195,7 +224,11 @@ class _MainShellState extends State<MainShell> {
         skipped: skippedCount,
         muted: mutedCount,
       ),
-      const GoalsPage(),
+      GoalsPage(
+        onboardingSummary: onboardingSummary,
+        onSaveSummary: saveOnboardingSummary,
+      ),
+      const AiPlanPage(),
     ];
 
     return Scaffold(
@@ -215,8 +248,10 @@ class _MainShellState extends State<MainShell> {
         onTap: (index) => setState(() => selectedIndex = index),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.today), label: 'Today'),
+          BottomNavigationBarItem(icon: Icon(Icons.notifications_active), label: 'Remind'),
           BottomNavigationBarItem(icon: Icon(Icons.insights), label: 'Progress'),
           BottomNavigationBarItem(icon: Icon(Icons.flag), label: 'Goals'),
+          BottomNavigationBarItem(icon: Icon(Icons.auto_awesome), label: 'AI Plan'),
         ],
       ),
     );
@@ -470,6 +505,69 @@ class ActionPill extends StatelessWidget {
   }
 }
 
+class RemindersPage extends StatelessWidget {
+  const RemindersPage({super.key, required this.routines, required this.onTestReminder});
+
+  final List<RoutineItem> routines;
+  final ValueChanged<RoutineItem> onTestReminder;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text('Reminder Engine', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 8),
+        const Text(
+          'Sprint 3 foundation: test local reminders now. Scheduling and snooze come next.',
+          style: TextStyle(color: Colors.white60),
+        ),
+        const SizedBox(height: 16),
+        ...routines.map(
+          (item) => ReminderTile(item: item, onTest: () => onTestReminder(item)),
+        ),
+      ],
+    );
+  }
+}
+
+class ReminderTile extends StatelessWidget {
+  const ReminderTile({super.key, required this.item, required this.onTest});
+
+  final RoutineItem item;
+  final VoidCallback onTest;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF0E1B2F), borderRadius: BorderRadius.circular(22)),
+      child: Row(
+        children: [
+          Icon(item.icon, color: Colors.cyanAccent),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 4),
+                Text('${item.time} - ${item.message}', style: const TextStyle(fontSize: 12, color: Colors.white60)),
+              ],
+            ),
+          ),
+          ElevatedButton(
+            onPressed: onTest,
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.cyanAccent, foregroundColor: Colors.black),
+            child: const Text('Test'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class SummaryCard extends StatelessWidget {
   const SummaryCard({super.key, required this.accepted, required this.skipped, required this.muted});
 
@@ -529,8 +627,34 @@ class ProgressPage extends StatelessWidget {
   }
 }
 
-class GoalsPage extends StatelessWidget {
-  const GoalsPage({super.key});
+class GoalsPage extends StatefulWidget {
+  const GoalsPage({super.key, required this.onboardingSummary, required this.onSaveSummary});
+
+  final String onboardingSummary;
+  final ValueChanged<String> onSaveSummary;
+
+  @override
+  State<GoalsPage> createState() => _GoalsPageState();
+}
+
+class _GoalsPageState extends State<GoalsPage> {
+  final TextEditingController situationController = TextEditingController();
+  final TextEditingController ambitionController = TextEditingController();
+
+  @override
+  void dispose() {
+    situationController.dispose();
+    ambitionController.dispose();
+    super.dispose();
+  }
+
+  void save() {
+    final situation = situationController.text.trim();
+    final ambition = ambitionController.text.trim();
+    if (situation.isEmpty && ambition.isEmpty) return;
+    widget.onSaveSummary('Current: ${situation.isEmpty ? 'Not provided' : situation}\nGoal: ${ambition.isEmpty ? 'Not provided' : ambition}');
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Onboarding summary saved')));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -548,7 +672,87 @@ class GoalsPage extends StatelessWidget {
         const Text('Transformation Goals', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
         const SizedBox(height: 16),
         ...goals.map((goal) => GoalTile(title: goal.$1, subtitle: goal.$2, icon: goal.$3, color: goal.$4)),
+        const SizedBox(height: 16),
+        const Text('Onboarding Foundation', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 10),
+        TextField(
+          controller: situationController,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'What are you going through now?',
+            filled: true,
+            fillColor: Color(0xFF0E1B2F),
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: ambitionController,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'What do you want to become?',
+            filled: true,
+            fillColor: Color(0xFF0E1B2F),
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 10),
+        ElevatedButton(onPressed: save, child: const Text('Save Onboarding Summary')),
+        const SizedBox(height: 12),
+        InfoPanel(title: 'Saved Summary', body: widget.onboardingSummary),
       ],
+    );
+  }
+}
+
+class AiPlanPage extends StatelessWidget {
+  const AiPlanPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: const [
+        Text('AI Plan Builder', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+        SizedBox(height: 16),
+        InfoPanel(
+          title: 'Sprint 3 Foundation',
+          body: 'This screen will later connect to OpenAI-compatible models. For MVP, we first capture user goals, generate local routine suggestions, and keep AI optional to control cost.',
+        ),
+        SizedBox(height: 12),
+        InfoPanel(
+          title: 'Planned AI Output',
+          body: 'Daily plan, weekly structure, emotional reminders, SCM/CPIM learning plan, AI enabler roadmap, finance discipline plan and family presence routine.',
+        ),
+        SizedBox(height: 12),
+        InfoPanel(
+          title: 'Privacy Direction',
+          body: 'User controls what is shared. AI analysis is optional. Personal images and calendar integrations will require explicit consent later.',
+        ),
+      ],
+    );
+  }
+}
+
+class InfoPanel extends StatelessWidget {
+  const InfoPanel({super.key, required this.title, required this.body});
+
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: const Color(0xFF0E1B2F), borderRadius: BorderRadius.circular(22)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
+          Text(body, style: const TextStyle(color: Colors.white60, height: 1.4)),
+        ],
+      ),
     );
   }
 }
