@@ -1,0 +1,118 @@
+{
+  "product": "Discipline Mirror",
+  "currentSprint": "Sprint 2",
+  "repoUrl": "https://github.com/sreekanthdarur/discipline-mirror",
+  "lastUpdated": "2026-05-24",
+  "items": [
+    {
+      "id": "EPIC-01",
+      "type": "Epic",
+      "title": "Product Foundation",
+      "status": "Done",
+      "priority": "High",
+      "owner": "AI + Sreekanth",
+      "sprint": "Sprint 0",
+      "github": "https://github.com/sreekanthdarur/discipline-mirror",
+      "desc": "Set up GitHub, Flutter, Android device runtime, branch workflow and startup structure."
+    },
+    {
+      "id": "PBI-01",
+      "type": "PBI",
+      "title": "Interactive MVP dashboard",
+      "status": "Review",
+      "priority": "High",
+      "owner": "AI Engineer",
+      "sprint": "Sprint 1",
+      "github": "https://github.com/sreekanthdarur/discipline-mirror/issues/1",
+      "desc": "Mobile-first dashboard with routine cards, Accept/Skip/Mute, live discipline score and status badges."
+    },
+    {
+      "id": "PBI-02",
+      "type": "PBI",
+      "title": "Persistence, navigation and streak foundation",
+      "status": "Review",
+      "priority": "High",
+      "owner": "AI Engineer",
+      "sprint": "Sprint 1 Phase 3",
+      "github": "https://github.com/sreekanthdarur/discipline-mirror/tree/feature/interactive-dashboard",
+      "desc": "Added bottom navigation, progress screen, goals screen, shared preferences, best score and streak foundation."
+    },
+    {
+      "id": "EPIC-02",
+      "type": "Epic",
+      "title": "AuraBoard AI Product Ops Dashboard",
+      "status": "In Progress",
+      "priority": "High",
+      "owner": "AI Architect",
+      "sprint": "Sprint 2",
+      "github": "https://github.com/sreekanthdarur/discipline-mirror/issues/2",
+      "desc": "Make AuraBoard part of the codebase with JSON-driven backlog, sprint visibility and founder progress tracking."
+    },
+    {
+      "id": "STORY-02-01",
+      "type": "Story",
+      "title": "As founder, I can open AuraBoard after git pull",
+      "status": "In Progress",
+      "priority": "High",
+      "owner": "AI Engineer",
+      "sprint": "Sprint 2",
+      "github": "https://github.com/sreekanthdarur/discipline-mirror/issues/2",
+      "desc": "AuraBoard should load sprint and backlog items from a repo-managed JSON source instead of only static seed data."
+    },
+    {
+      "id": "STORY-02-02",
+      "type": "Story",
+      "title": "As founder, I can see sprint progress clearly",
+      "status": "Backlog",
+      "priority": "High",
+      "owner": "AI Engineer",
+      "sprint": "Sprint 2",
+      "github": "https://github.com/sreekanthdarur/discipline-mirror/issues/2",
+      "desc": "Show current sprint, total items, done/review count and MVP progress."
+    },
+    {
+      "id": "STORY-02-03",
+      "type": "Story",
+      "title": "As founder, I can identify next action",
+      "status": "Backlog",
+      "priority": "Medium",
+      "owner": "AI Product Director",
+      "sprint": "Sprint 2",
+      "github": "",
+      "desc": "Board should show whether the next action is AI implementation, user testing, code review or release decision."
+    },
+    {
+      "id": "EPIC-03",
+      "type": "Epic",
+      "title": "Reminder and Notification Engine",
+      "status": "Backlog",
+      "priority": "High",
+      "owner": "AI Architect",
+      "sprint": "Sprint 3",
+      "github": "",
+      "desc": "Add local notifications, reminder scheduling, snooze and track-only mode."
+    },
+    {
+      "id": "EPIC-04",
+      "type": "Epic",
+      "title": "AI Plan Builder",
+      "status": "Ideas",
+      "priority": "High",
+      "owner": "AI Architect",
+      "sprint": "Sprint 4",
+      "github": "",
+      "desc": "User explains current life situation and AI creates goals, plan, schedule and reminders."
+    },
+    {
+      "id": "EPIC-05",
+      "type": "Epic",
+      "title": "Emotional Image Reminder Generator",
+      "status": "Ideas",
+      "priority": "High",
+      "owner": "AI Architect",
+      "sprint": "Sprint 5",
+      "github": "",
+      "desc": "Generate emotional visual reminders, banners and lock-screen style images with user-approved photos and text."
+    }
+  ]
+}
